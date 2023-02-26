@@ -33,6 +33,7 @@
                   v-for="(item, i) in listItems"
                   :key="i"
                   :value="item"
+                  @click.once="onSelectAction(item.action, task.id)"
                 >
                   <template v-slot:prepend>
                     <v-icon :icon="item.icon"></v-icon>
@@ -53,8 +54,8 @@
           :model-value="task.is_completed == 1"
           :label="checkBoxTaskLabel(task.is_completed)"
           :color="checkBoxTaskColor(task.is_completed)"
-          @click="onCompletedTask(task.id, task.is_completed)"
-        ></v-checkbox>
+          @change="onChangeTaskStatus(task.id, task.is_completed)"
+        />
       </v-card-actions>
     </v-card>
   </div>
@@ -70,6 +71,7 @@
 <script setup lang="ts">
 import { ref, reactive } from "vue";
 import axios from "axios";
+
 interface Task {
   id: string;
   title: string;
@@ -87,12 +89,24 @@ const token =
 const tasks = ref([] as Task[]);
 const isActiveOverlay = ref(false);
 const listItems = reactive([
-  { text: "Detalles", icon: "mdi-clock" },
-  { text: "Editar", icon: "mdi-clock" },
-  { text: "Eliminar", icon: "mdi-clock" },
+  { text: "Editar", icon: "mdi-pencil", action: "edit" },
+  { text: "Eliminar", icon: "mdi-delete", action: "delete" },
 ]);
 
 //functions
+
+function taskClasses(is_completed: number) {
+  return is_completed ? "task-completed " : "task-pending";
+}
+function titleTaskClasses(is_completed: number) {
+  return is_completed ? " text-decoration-line-through" : "";
+}
+function checkBoxTaskColor(is_completed: number) {
+  return is_completed ? " success" : "info";
+}
+function checkBoxTaskLabel(is_completed: number) {
+  return is_completed ? "Tarea completada" : "Tarea pendiente";
+}
 
 async function getTasks() {
   isActiveOverlay.value = true;
@@ -106,20 +120,40 @@ async function getTasks() {
   tasks.value = res.data;
   isActiveOverlay.value = false;
 }
-function taskClasses(is_completed: number) {
-  return is_completed ? "task-completed " : "task-pending";
+async function onDelteTask(id: string) {
+  isActiveOverlay.value = true;
+  await axios.delete(
+    `https://ecsdevapi.nextline.mx/vdev/tasks-challenge/tasks/${id}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      params: { token: token },
+    }
+  );
+  isActiveOverlay.value = false;
+  getTasks();
 }
-function titleTaskClasses(is_completed: number) {
-  return is_completed ? " text-decoration-line-through" : "";
+async function onUpdateTask(task: Task) {
+  await axios.put(
+    `https://ecsdevapi.nextline.mx/vdev/tasks-challenge/tasks/${task.id}`,
+    null,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      params: { token: token, ...tasks },
+    }
+  );
 }
-function checkBoxTaskColor(is_completed: number) {
-  return is_completed ? " success" : "info";
+function onChangeTaskStatus(id: string, is_completed: 0 | 1) {
+  const taskIndex = tasks.value.findIndex((task) => task.id === id);
+  tasks.value[taskIndex].is_completed = is_completed ? 0 : 1;
+  onUpdateTask(tasks.value[taskIndex]);
 }
-function checkBoxTaskLabel(is_completed: number) {
-  return is_completed ? "Tarea completada" : "Tarea pendiente";
-}
-function onCompletedTask(id: string, is_completed: number) {
-  console.log("On completed task");
+async function onSelectAction(action: string, id: string) {
+  if (action === "delete") await onDelteTask(id);
 }
 onMounted(() => {
   getTasks();
