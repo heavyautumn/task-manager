@@ -1,8 +1,12 @@
 <template>
   <div>
-    <h1 class="text-n1 text-center">Lista de tareas</h1>
+    <h1 class="text-n1 text-center mt-10">Lista de tareas</h1>
     <div v-if="tasks.length > 0">
-      <div class="d-flex justify-center" v-for="task in tasks" :key="task.id">
+      <div
+        class="d-flex justify-center mt-10"
+        v-for="task in tasks"
+        :key="task.id"
+      >
         <v-card
           class="task"
           :class="taskClasses(task.is_completed)"
@@ -20,9 +24,9 @@
                   {{ task.title }}
                 </span>
                 <br />
-                <span class="text-caption text-medium-emphasis">{{
-                  task.due_date
-                }}</span>
+                <span class="text-caption text-medium-emphasis">
+                  {{ task.due_date }}
+                </span>
               </div>
               <!-- Drop list -->
               <template v-slot:append>
@@ -82,6 +86,13 @@
         size="64"
       ></v-progress-circular>
     </v-overlay>
+    <!-- Message -->
+    <v-snackbar v-model="showSnackbar" timeout="2000" :color="message.type">
+      {{ message.text }}
+      <template v-slot:actions>
+        <v-btn variant="text" @click="showSnackbar = false"> Cerrar </v-btn>
+      </template>
+    </v-snackbar>
   </div>
 </template>
 <script setup lang="ts">
@@ -109,9 +120,19 @@ const listItems = reactive([
   { text: "Eliminar", icon: "mdi-delete", action: "delete" },
 ]);
 const router = useRouter();
+const showSnackbar = ref(false);
+const message = reactive({
+  type: "",
+  text: "",
+});
 
 //functions
 
+function showMessage(text: string, type: string) {
+  message.text = text;
+  message.type = type;
+  showSnackbar.value = true;
+}
 function taskClasses(is_completed: number) {
   return is_completed ? "task-completed " : "task-pending";
 }
@@ -126,42 +147,55 @@ function checkBoxTaskLabel(is_completed: number) {
 }
 async function getTasks() {
   isActiveOverlay.value = true;
-  const res = await axios.get(
-    "https://ecsdevapi.nextline.mx/vdev/tasks-challenge/tasks",
-    {
-      headers: { Authorization: `Bearer ${token}` },
-      params: { token: token },
-    }
-  );
-  tasks.value = res.data;
+  try {
+    const res = await axios.get(
+      "https://ecsdevapi.nextline.mx/vdev/tasks-challenge/tasks",
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { token: token },
+      }
+    );
+    tasks.value = res.data;
+  } catch {
+    showMessage("Ha habido un problema al obtener las tareas", "error");
+  }
+
   isActiveOverlay.value = false;
 }
 async function onDelteTask(id: string) {
   isActiveOverlay.value = true;
-  await axios.delete(
-    `https://ecsdevapi.nextline.mx/vdev/tasks-challenge/tasks/${id}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      params: { token: token },
-    }
-  );
+  try {
+    await axios.delete(
+      `https://ecsdevapi.nextline.mx/vdev/tasks-challenge/tasks/${id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        params: { token: token },
+      }
+    );
+  } catch {
+    showMessage("Ha habido un problema al eliminar la tarea", "error");
+  }
   isActiveOverlay.value = false;
   getTasks();
 }
 async function onUpdateTask(task: Task) {
-  await axios.put(
-    `https://ecsdevapi.nextline.mx/vdev/tasks-challenge/tasks/${task.id}`,
-    null,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      params: { token: token, ...task },
-    }
-  );
+  try {
+    await axios.put(
+      `https://ecsdevapi.nextline.mx/vdev/tasks-challenge/tasks/${task.id}`,
+      null,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        params: { token: token, ...task },
+      }
+    );
+  } catch {
+    showMessage("Ha habido un problema al actualizar la tarea", "error");
+  }
 }
 function onChangeTaskStatus(id: string, is_completed: 0 | 1) {
   const taskIndex = tasks.value.findIndex((task) => task.id === id);

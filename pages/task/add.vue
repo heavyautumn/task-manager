@@ -1,7 +1,7 @@
 <template>
-  <div class="d-flex justify-center align-center">
-    <v-card width="80%" class="mt-5 pa-5">
-      <h1 class="text-n1 text-center ma-2">Agregar tarea</h1>
+  <div class="d-flex justify-center">
+    <v-card width="80%" class="mt-10 pa-5">
+      <h1 class="text-n1 text-center mb-5">Agregar tarea</h1>
       <v-form validate-on="submit" @submit.prevent="submit">
         <v-text-field
           v-model="task.title"
@@ -45,6 +45,13 @@
       size="64"
     ></v-progress-circular>
   </v-overlay>
+  <!-- Message -->
+  <v-snackbar v-model="showSnackbar" timeout="2000" :color="message.type">
+    {{ message.text }}
+    <template v-slot:actions>
+      <v-btn variant="text" @click="showSnackbar = false"> Cerrar </v-btn>
+    </template>
+  </v-snackbar>
 </template>
 <script setup lang="ts">
 import { ref, reactive } from "vue";
@@ -64,6 +71,11 @@ const task = reactive({
   description: null,
   comments: null,
 });
+const showSnackbar = ref(false);
+const message = reactive({
+  type: "",
+  text: "",
+});
 
 //form rules
 
@@ -76,25 +88,35 @@ const titleRules = ref([
 
 //functions
 
+function showMessage(text: string, type: string) {
+  message.text = text;
+  message.type = type;
+  showSnackbar.value = true;
+}
 async function submit(event: any) {
   isActiveOverlay.value = true;
-  const results = await event;
-  if (results.valid) {
-    const filterTask = Object.fromEntries(
-      Object.entries(task).filter(([_, v]) => v != null)
-    );
-    await axios.post(
-      `https://ecsdevapi.nextline.mx/vdev/tasks-challenge/tasks`,
-      null,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        params: { token: token, ...filterTask },
-      }
-    );
-    router.push("/");
+  try {
+    const results = await event;
+    if (results.valid) {
+      const filterTask = Object.fromEntries(
+        Object.entries(task).filter(([_, v]) => v != null)
+      );
+      await axios.post(
+        `https://ecsdevapi.nextline.mx/vdev/tasks-challenge/tasks`,
+        null,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          params: { token: token, ...filterTask },
+        }
+      );
+      showMessage("Tarea creada exitosamente", "success");
+      router.push("/");
+    }
+  } catch {
+    showMessage("Ha habido un problema al crear la tarea", "error");
   }
   isActiveOverlay.value = false;
 }
