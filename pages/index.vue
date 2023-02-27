@@ -1,12 +1,8 @@
 <template>
   <div>
-    <h1 class="text-n1 text-center mt-10">Lista de tareas</h1>
+    <h1 class="text-n1 text-center my-10">Lista de tareas</h1>
     <div v-if="tasks.length > 0">
-      <div
-        class="d-flex justify-center mt-10"
-        v-for="task in tasks"
-        :key="task.id"
-      >
+      <div class="d-flex justify-center" v-for="task in tasks" :key="task.id">
         <v-card
           class="task"
           :class="taskClasses(task.is_completed)"
