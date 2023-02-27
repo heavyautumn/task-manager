@@ -1,9 +1,11 @@
 <template>
-  <v-app id="app">
-    <!-- app -->
-
-    <NuxtPage />
-  </v-app>
+  <div>
+    <ClientOnly>
+      <v-app id="app">
+        <!-- app -->
+        <NuxtPage /> </v-app
+    ></ClientOnly>
+  </div>
 </template>
 <style>
 body {

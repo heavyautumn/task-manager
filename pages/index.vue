@@ -59,7 +59,13 @@
       </v-card-actions>
     </v-card>
   </div>
-  <v-btn class="float-left add-btn" icon="mdi-plus" color="primary"></v-btn>
+  <v-btn
+    class="float-left add-btn"
+    icon="mdi-plus"
+    color="primary"
+    to="/task/add"
+  />
+
   <v-overlay :model-value="isActiveOverlay" class="align-center justify-center">
     <v-progress-circular
       color="primary"
@@ -92,6 +98,7 @@ const listItems = reactive([
   { text: "Editar", icon: "mdi-pencil", action: "edit" },
   { text: "Eliminar", icon: "mdi-delete", action: "delete" },
 ]);
+const router = useRouter();
 
 //functions
 
@@ -107,7 +114,6 @@ function checkBoxTaskColor(is_completed: number) {
 function checkBoxTaskLabel(is_completed: number) {
   return is_completed ? "Tarea completada" : "Tarea pendiente";
 }
-
 async function getTasks() {
   isActiveOverlay.value = true;
   const res = await axios.get(
@@ -143,7 +149,7 @@ async function onUpdateTask(task: Task) {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      params: { token: token, ...tasks },
+      params: { token: token, ...task },
     }
   );
 }
@@ -154,6 +160,8 @@ function onChangeTaskStatus(id: string, is_completed: 0 | 1) {
 }
 async function onSelectAction(action: string, id: string) {
   if (action === "delete") await onDelteTask(id);
+  if (action === "edit") router.push(`task/edit/${id}`);
+  if (action === "show") router.push(`task/${id}`);
 }
 onMounted(() => {
   getTasks();
